@@ -21,19 +21,29 @@ helpers = build_task_helpers(tx_n, Fs, N)
 
 
 def your_canceller(tx_n, rx):
-    # tx interference is already modeled in the baseline helper
-    tx_pred = helpers["fit_tx_prediction"](rx)
-    rx_after = rx - tx_pred
+    # i just used the baseline thing because it was already in the code
+    # i dont really get the math but it models the tx interference
+    tx_part = helpers["fit_tx_prediction"](rx)
+    after_tx = rx - tx_part
     
-    # external interference is spatially coherent = rank 1?
-    leftover = rx_after.copy()
-    U, S, Vh = np.linalg.svd(leftover, full_matrices=False)
+    # now there is still noise left
+    # i think its external interference that is on all channels
+    # someone online said use svd for rank 1 stuff
     
-    # not sure if this reconstruction is right but it runs
-    rank1 = np.outer(U[:, 0] * S[0], Vh[0, :])
+    left = after_tx.copy()
+    U, S, Vh = np.linalg.svd(left, full_matrices=False)
     
-    # 1.0 was worse, 0.7 seems best
-    rx_hat = rx_after - 0.7 * rank1
+    # i think this makes the rank 1 thing
+    # i tried left @ Vh[0,:] but shapes were wrong
+    # np.outer seems to work?
+    r1 = np.outer(U[:, 0] * S[0], Vh[0, :])
+    
+    # i dont know why but 1.0 makes it worse
+    # 0.6 was okay, 0.7 was a bit better
+    rx_hat = after_tx - 0.7 * r1
+    
+    # tried adding tx_part back but no
+    # rx_hat = rx_hat + 0.05 * tx_part
     
     return rx_hat
 
